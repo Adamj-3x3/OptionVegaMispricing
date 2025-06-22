@@ -5,6 +5,7 @@ from scipy.stats import norm
 from datetime import datetime, timedelta
 import warnings
 import logging
+import time
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -58,6 +59,10 @@ def get_options_data(ticker, expiration, underlying_price):
 
     calls = process_df(opt_chain.calls)
     puts = process_df(opt_chain.puts)
+
+    # Add a small delay to be respectful to the API
+    time.sleep(0.2)
+
     return calls, puts
 
 

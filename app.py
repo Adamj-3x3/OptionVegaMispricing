@@ -6,9 +6,10 @@ from analysis_engine import generate_bullish_report_html, generate_bearish_repor
 app = Flask(__name__)
 
 # Configure caching with Redis
-# This will use the REDIS_URL environment variable on Render
-app.config['CACHE_TYPE'] = 'RedisCache'
-app.config['CACHE_REDIS_URL'] = os.getenv('REDIS_URL')
+app.config.from_mapping(
+    CACHE_TYPE='redis',
+    CACHE_REDIS_URL=os.environ.get('REDIS_URL')
+)
 
 cache = Cache(app)
 
