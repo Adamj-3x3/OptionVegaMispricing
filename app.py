@@ -1,21 +1,8 @@
 import os
 from flask import Flask, render_template, request, jsonify
-from flask_caching import Cache
-from analysis_engine import generate_bullish_report_html, generate_bearish_report_html
+from analysis_engine import generate_report_html
 
 app = Flask(__name__)
-
-# Configure caching with Redis
-app.config.from_mapping(
-    CACHE_TYPE='redis',
-    CACHE_REDIS_URL=os.environ.get('REDIS_URL')
-)
-app.config['CACHE_REDIS_KWARGS'] = {
-    "ssl": True,
-    "ssl_cert_reqs": None
-}
-
-cache = Cache(app)
 
 @app.route('/')
 def index():
@@ -39,9 +26,9 @@ def analyze():
     
     # Call the appropriate function based on analysis type
     if analysis_type == 'bullish':
-        report_html = generate_bullish_report_html(ticker, min_dte, max_dte, cache)
+        report_html = generate_report_html(ticker, min_dte, max_dte)
     elif analysis_type == 'bearish':
-        report_html = generate_bearish_report_html(ticker, min_dte, max_dte, cache)
+        report_html = generate_report_html(ticker, min_dte, max_dte)
     else:
         report_html = "<p>Invalid analysis type specified.</p>"
     

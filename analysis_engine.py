@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import warnings
 import logging
 import time
+import os
+from upstash_redis import Redis
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -312,130 +314,74 @@ def create_bearish_dashboard(results, ticker, analysis_summary):
 # -------------------------------
 # Main Analysis Functions
 # -------------------------------
-def generate_bullish_report_html(ticker: str, min_dte: int, max_dte: int, cache) -> str:
-    """
-    Generate a bullish risk reversal analysis report for the given ticker and date range.
-    
-    Args:
-        ticker: Stock ticker symbol
-        min_dte: Minimum days to expiration
-        max_dte: Maximum days to expiration
-        cache: Flask-Caching cache object
-    
-    Returns:
-        HTML string containing the analysis report
-    """
-    @cache.memoize(timeout=300)
-    def _generate_bullish_report(ticker: str, min_dte: int, max_dte: int) -> str:
-        logging.info(f"--- CACHE MISS --- Running bullish analysis for {ticker} ({min_dte}-{max_dte} DTE)")
-        try:
-            stock = yf.Ticker(ticker)
-            underlying_price = stock.history(period='1d')['Close'].iloc[-1]
-
-            today = datetime.now()
-            valid_expirations = [exp for exp in stock.options if
-                                 min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
-
-            if not valid_expirations:
-                return "<p>No expirations found in the specified date range.</p>"
-
-            exp_to_analyze = valid_expirations[:3]
-
-            all_combinations = []
-            analysis_summary = {}
-            for expiration in exp_to_analyze:
-                calls, puts = get_options_data(ticker, expiration, underlying_price)
-                if calls.empty or puts.empty:
-                    analysis_summary[expiration] = 0
-                    continue
-
-                combinations = analyze_bullish_risk_reversal(calls, puts, underlying_price, expiration)
-                analysis_summary[expiration] = len(combinations)
-                if combinations:
-                    all_combinations.extend(combinations)
-
-            if not all_combinations:
-                return "<p>No valid strategies were found in the specified range.</p>"
-
-            ranked_results = rank_combinations(all_combinations)
-
-            final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score',
-                                                                                     ascending=False).reset_index(drop=True)
-
-            if final_results.empty:
-                return "<p>No valid strategies remained after filtering.</p>"
-
-            html_content = create_bullish_dashboard(final_results, ticker, analysis_summary)
-            return html_content
-            
-        except Exception as e:
-            return f"<p>An error occurred: {e}</p>"
-    
-    return _generate_bullish_report(ticker, min_dte, max_dte)
-
-
-def generate_bearish_report_html(ticker: str, min_dte: int, max_dte: int, cache) -> str:
-    """
-    Generate a bearish risk reversal analysis report for the given ticker and date range.
-    
-    Args:
-        ticker: Stock ticker symbol
-        min_dte: Minimum days to expiration
-        max_dte: Maximum days to expiration
-        cache: Flask-Caching cache object
-    
-    Returns:
-        HTML string containing the analysis report
-    """
-    @cache.memoize(timeout=300)
-    def _generate_bearish_report(ticker: str, min_dte: int, max_dte: int) -> str:
-        logging.info(f"--- CACHE MISS --- Running bearish analysis for {ticker} ({min_dte}-{max_dte} DTE)")
-        try:
-            stock = yf.Ticker(ticker)
-            underlying_price = stock.history(period='1d')['Close'].iloc[-1]
-
-            today = datetime.now()
-            valid_expirations = [exp for exp in stock.options if
-                                 min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
-
-            if not valid_expirations:
-                return "<p>No expirations found in the specified date range.</p>"
-
-            exp_to_analyze = valid_expirations[:3]
-
-            all_combinations = []
-            analysis_summary = {}
-            for expiration in exp_to_analyze:
-                calls, puts = get_options_data(ticker, expiration, underlying_price)
-                if calls.empty or puts.empty:
-                    analysis_summary[expiration] = 0
-                    continue
-
-                combinations = analyze_bearish_risk_reversal(calls, puts, underlying_price, expiration)
-                analysis_summary[expiration] = len(combinations)
-                if combinations:
-                    all_combinations.extend(combinations)
-
-            if not all_combinations:
-                return "<p>No valid strategies were found in the specified range.</p>"
-
-            ranked_results = rank_bearish_combinations(all_combinations)
-
-            final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score',
-                                                                                     ascending=False).reset_index(drop=True)
-
-            if final_results.empty:
-                return "<p>No valid strategies remained after filtering.</p>"
-
-            html_content = create_bearish_dashboard(final_results, ticker, analysis_summary)
-            return html_content
-            
-        except Exception as e:
-            return f"<p>An error occurred: {e}</p>"
-    
-    return _generate_bearish_report(ticker, min_dte, max_dte)
-
-
-# Legacy function for backward compatibility
 def generate_report_html(ticker: str, min_dte: int, max_dte: int) -> str:
-    return generate_bullish_report_html(ticker, min_dte, max_dte, None) 
+    """
+    Analyzes strategies and implements manual caching using Upstash's REST API.
+    """
+    try:
+        # --- Manual Caching Logic ---
+        # Initialize the Redis client from environment variables
+        redis = Redis.from_env()
+        cache_key = f"analysis:{ticker}:{min_dte}:{max_dte}"
+
+        # 1. Check the cache first
+        cached_result = redis.get(cache_key)
+        if cached_result:
+            print("--- CACHE HIT --- Returning saved report from Upstash Redis.")
+            return cached_result
+        print("--- CACHE MISS --- Running full analysis.")
+        
+        # --- Original Analysis Logic with Delays ---
+        stock = yf.Ticker(ticker)
+        underlying_price = stock.history(period='1d')['Close'].iloc[-1]
+        time.sleep(0.4) # Gentle delay 1
+        
+        today = datetime.now()
+        valid_expirations = [exp for exp in stock.options if min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
+        time.sleep(0.4) # Gentle delay 2
+        
+        if not valid_expirations:
+            return "<h3>No expirations found in the specified date range.</h3>"
+        
+        exp_to_analyze = valid_expirations[:3]
+        analysis_summary = {}
+        all_combinations = []
+        
+        for expiration in exp_to_analyze:
+            print(f"\n⚡ Analyzing expiration: {expiration}...")
+            time.sleep(0.4) # Gentle delay 3 (inside the loop)
+            calls, puts = get_options_data(ticker, expiration, underlying_price)
+            if calls.empty or puts.empty:
+                print(f"    - No suitable OTM options data found after cleaning.")
+                analysis_summary[expiration] = 0
+                continue
+           
+            combinations = analyze_bullish_risk_reversal(calls, puts, underlying_price, expiration)
+            analysis_summary[expiration] = len(combinations)
+            if combinations:
+                print(f"    ✅ Found {len(combinations)} potential combinations.")
+                all_combinations.extend(combinations)
+            else:
+                print(f"    - No valid combinations met the strategy criteria.")
+        
+        if not all_combinations:
+            return "<h3>No valid strategies found for this search.</h3>"
+        
+        ranked_results = rank_combinations(all_combinations)
+        final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score', ascending=False).reset_index(drop=True)
+        
+        if final_results.empty:
+            return "<h3>No valid strategies remained after filtering.</h3>"
+        
+        html_content = create_bullish_dashboard(final_results, ticker, analysis_summary)
+        
+        # --- Save the result to the cache before returning ---
+        print(f"--- SAVING TO CACHE --- Storing report for key: {cache_key}")
+        redis.set(cache_key, html_content, ex=300) # Cache for 5 minutes (300 seconds)
+        
+        return html_content
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"<h3>An unexpected server error occurred.</h3><p>Error: {e}</p>" 
