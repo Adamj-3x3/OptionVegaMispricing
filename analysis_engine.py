@@ -4,6 +4,10 @@ import numpy as np
 from scipy.stats import norm
 from datetime import datetime, timedelta
 import warnings
+import logging
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 warnings.filterwarnings('ignore')
 
@@ -318,6 +322,7 @@ def generate_bullish_report_html(ticker: str, min_dte: int, max_dte: int, cache)
     """
     @cache.memoize(timeout=300)
     def _generate_bullish_report(ticker: str, min_dte: int, max_dte: int) -> str:
+        logging.info(f"--- CACHE MISS --- Running bullish analysis for {ticker} ({min_dte}-{max_dte} DTE)")
         try:
             stock = yf.Ticker(ticker)
             underlying_price = stock.history(period='1d')['Close'].iloc[-1]
@@ -379,6 +384,7 @@ def generate_bearish_report_html(ticker: str, min_dte: int, max_dte: int, cache)
     """
     @cache.memoize(timeout=300)
     def _generate_bearish_report(ticker: str, min_dte: int, max_dte: int) -> str:
+        logging.info(f"--- CACHE MISS --- Running bearish analysis for {ticker} ({min_dte}-{max_dte} DTE)")
         try:
             stock = yf.Ticker(ticker)
             underlying_price = stock.history(period='1d')['Close'].iloc[-1]

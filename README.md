@@ -50,6 +50,29 @@ A comprehensive web application for analyzing both bullish and bearish options s
    - Click "Run Analysis" to generate the report
    - View the results directly on the page
 
+## Deployment on Render
+
+This application is configured for deployment on a platform like Render.
+
+### 1. Create a Redis Instance
+Before deploying your web service, you need a Redis cache.
+- In the Render dashboard, go to **New > Redis**.
+- Choose a plan (the free plan is sufficient for this app).
+- After creation, find your new Redis instance and copy the **Internal Connection URL**. It will look like `redis://red-....`.
+
+### 2. Deploy the Web Service
+- In the Render dashboard, go to **New > Web Service** and connect your GitHub repository.
+- During setup, go to the **Environment** section.
+- Add a new **Environment Variable**:
+  - **Key**: `REDIS_URL`
+  - **Value**: Paste the Internal Connection URL you copied from your Redis instance.
+- Render will automatically install dependencies from `requirements.txt` and use the `Procfile` to start the application with `gunicorn`.
+
+### 3. Verify Caching
+- After deployment, go to the **Logs** tab for your web service.
+- The first time you run an analysis, you will see a log message: `--- CACHE MISS ---`.
+- If you run the exact same analysis again within 5 minutes, you will **not** see that message, confirming the result was served from the cache.
+
 ## How It Works
 
 1. **Home Page**: Users select their market outlook (bullish or bearish)
@@ -92,6 +115,7 @@ pythonProject2/
 ## Technical Details
 
 - **Backend**: Flask web framework with multiple routes
+- **Caching**: Production-ready Redis cache via Flask-Caching to prevent API rate-limiting.
 - **Frontend**: Vanilla JavaScript with modern CSS
 - **Analysis**: Uses yfinance for options data, scipy for Black-Scholes calculations
 - **Styling**: Responsive design with strategy-specific color schemes

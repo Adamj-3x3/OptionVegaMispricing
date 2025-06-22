@@ -1,11 +1,15 @@
+import os
 from flask import Flask, render_template, request, jsonify
 from flask_caching import Cache
 from analysis_engine import generate_bullish_report_html, generate_bearish_report_html
 
 app = Flask(__name__)
 
-# Configure caching
-app.config['CACHE_TYPE'] = 'SimpleCache'
+# Configure caching with Redis
+# This will use the REDIS_URL environment variable on Render
+app.config['CACHE_TYPE'] = 'RedisCache'
+app.config['CACHE_REDIS_URL'] = os.getenv('REDIS_URL')
+
 cache = Cache(app)
 
 @app.route('/')
