@@ -303,7 +303,7 @@ def create_bearish_dashboard(results, ticker, analysis_summary):
 # -------------------------------
 # Main Analysis Functions
 # -------------------------------
-def generate_bullish_report_html(ticker: str, min_dte: int, max_dte: int) -> str:
+def generate_bullish_report_html(ticker: str, min_dte: int, max_dte: int, cache) -> str:
     """
     Generate a bullish risk reversal analysis report for the given ticker and date range.
     
@@ -311,55 +311,60 @@ def generate_bullish_report_html(ticker: str, min_dte: int, max_dte: int) -> str
         ticker: Stock ticker symbol
         min_dte: Minimum days to expiration
         max_dte: Maximum days to expiration
+        cache: Flask-Caching cache object
     
     Returns:
         HTML string containing the analysis report
     """
-    try:
-        stock = yf.Ticker(ticker)
-        underlying_price = stock.history(period='1d')['Close'].iloc[-1]
+    @cache.memoize(timeout=300)
+    def _generate_bullish_report(ticker: str, min_dte: int, max_dte: int) -> str:
+        try:
+            stock = yf.Ticker(ticker)
+            underlying_price = stock.history(period='1d')['Close'].iloc[-1]
 
-        today = datetime.now()
-        valid_expirations = [exp for exp in stock.options if
-                             min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
+            today = datetime.now()
+            valid_expirations = [exp for exp in stock.options if
+                                 min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
 
-        if not valid_expirations:
-            return "<p>No expirations found in the specified date range.</p>"
+            if not valid_expirations:
+                return "<p>No expirations found in the specified date range.</p>"
 
-        exp_to_analyze = valid_expirations[:3]
+            exp_to_analyze = valid_expirations[:3]
 
-        all_combinations = []
-        analysis_summary = {}
-        for expiration in exp_to_analyze:
-            calls, puts = get_options_data(ticker, expiration, underlying_price)
-            if calls.empty or puts.empty:
-                analysis_summary[expiration] = 0
-                continue
+            all_combinations = []
+            analysis_summary = {}
+            for expiration in exp_to_analyze:
+                calls, puts = get_options_data(ticker, expiration, underlying_price)
+                if calls.empty or puts.empty:
+                    analysis_summary[expiration] = 0
+                    continue
 
-            combinations = analyze_bullish_risk_reversal(calls, puts, underlying_price, expiration)
-            analysis_summary[expiration] = len(combinations)
-            if combinations:
-                all_combinations.extend(combinations)
+                combinations = analyze_bullish_risk_reversal(calls, puts, underlying_price, expiration)
+                analysis_summary[expiration] = len(combinations)
+                if combinations:
+                    all_combinations.extend(combinations)
 
-        if not all_combinations:
-            return "<p>No valid strategies were found in the specified range.</p>"
+            if not all_combinations:
+                return "<p>No valid strategies were found in the specified range.</p>"
 
-        ranked_results = rank_combinations(all_combinations)
+            ranked_results = rank_combinations(all_combinations)
 
-        final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score',
-                                                                                 ascending=False).reset_index(drop=True)
+            final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score',
+                                                                                     ascending=False).reset_index(drop=True)
 
-        if final_results.empty:
-            return "<p>No valid strategies remained after filtering.</p>"
+            if final_results.empty:
+                return "<p>No valid strategies remained after filtering.</p>"
 
-        html_content = create_bullish_dashboard(final_results, ticker, analysis_summary)
-        return html_content
-        
-    except Exception as e:
-        return f"<p>An error occurred: {e}</p>"
+            html_content = create_bullish_dashboard(final_results, ticker, analysis_summary)
+            return html_content
+            
+        except Exception as e:
+            return f"<p>An error occurred: {e}</p>"
+    
+    return _generate_bullish_report(ticker, min_dte, max_dte)
 
 
-def generate_bearish_report_html(ticker: str, min_dte: int, max_dte: int) -> str:
+def generate_bearish_report_html(ticker: str, min_dte: int, max_dte: int, cache) -> str:
     """
     Generate a bearish risk reversal analysis report for the given ticker and date range.
     
@@ -367,54 +372,59 @@ def generate_bearish_report_html(ticker: str, min_dte: int, max_dte: int) -> str
         ticker: Stock ticker symbol
         min_dte: Minimum days to expiration
         max_dte: Maximum days to expiration
+        cache: Flask-Caching cache object
     
     Returns:
         HTML string containing the analysis report
     """
-    try:
-        stock = yf.Ticker(ticker)
-        underlying_price = stock.history(period='1d')['Close'].iloc[-1]
+    @cache.memoize(timeout=300)
+    def _generate_bearish_report(ticker: str, min_dte: int, max_dte: int) -> str:
+        try:
+            stock = yf.Ticker(ticker)
+            underlying_price = stock.history(period='1d')['Close'].iloc[-1]
 
-        today = datetime.now()
-        valid_expirations = [exp for exp in stock.options if
-                             min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
+            today = datetime.now()
+            valid_expirations = [exp for exp in stock.options if
+                                 min_dte <= (datetime.strptime(exp, "%Y-%m-%d") - today).days <= max_dte]
 
-        if not valid_expirations:
-            return "<p>No expirations found in the specified date range.</p>"
+            if not valid_expirations:
+                return "<p>No expirations found in the specified date range.</p>"
 
-        exp_to_analyze = valid_expirations[:3]
+            exp_to_analyze = valid_expirations[:3]
 
-        all_combinations = []
-        analysis_summary = {}
-        for expiration in exp_to_analyze:
-            calls, puts = get_options_data(ticker, expiration, underlying_price)
-            if calls.empty or puts.empty:
-                analysis_summary[expiration] = 0
-                continue
+            all_combinations = []
+            analysis_summary = {}
+            for expiration in exp_to_analyze:
+                calls, puts = get_options_data(ticker, expiration, underlying_price)
+                if calls.empty or puts.empty:
+                    analysis_summary[expiration] = 0
+                    continue
 
-            combinations = analyze_bearish_risk_reversal(calls, puts, underlying_price, expiration)
-            analysis_summary[expiration] = len(combinations)
-            if combinations:
-                all_combinations.extend(combinations)
+                combinations = analyze_bearish_risk_reversal(calls, puts, underlying_price, expiration)
+                analysis_summary[expiration] = len(combinations)
+                if combinations:
+                    all_combinations.extend(combinations)
 
-        if not all_combinations:
-            return "<p>No valid strategies were found in the specified range.</p>"
+            if not all_combinations:
+                return "<p>No valid strategies were found in the specified range.</p>"
 
-        ranked_results = rank_bearish_combinations(all_combinations)
+            ranked_results = rank_bearish_combinations(all_combinations)
 
-        final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score',
-                                                                                 ascending=False).reset_index(drop=True)
+            final_results = ranked_results.groupby('expiration').head(3).sort_values('total_score',
+                                                                                     ascending=False).reset_index(drop=True)
 
-        if final_results.empty:
-            return "<p>No valid strategies remained after filtering.</p>"
+            if final_results.empty:
+                return "<p>No valid strategies remained after filtering.</p>"
 
-        html_content = create_bearish_dashboard(final_results, ticker, analysis_summary)
-        return html_content
-        
-    except Exception as e:
-        return f"<p>An error occurred: {e}</p>"
+            html_content = create_bearish_dashboard(final_results, ticker, analysis_summary)
+            return html_content
+            
+        except Exception as e:
+            return f"<p>An error occurred: {e}</p>"
+    
+    return _generate_bearish_report(ticker, min_dte, max_dte)
 
 
 # Legacy function for backward compatibility
 def generate_report_html(ticker: str, min_dte: int, max_dte: int) -> str:
-    return generate_bullish_report_html(ticker, min_dte, max_dte) 
+    return generate_bullish_report_html(ticker, min_dte, max_dte, None) 

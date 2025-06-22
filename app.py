@@ -1,7 +1,12 @@
 from flask import Flask, render_template, request, jsonify
+from flask_caching import Cache
 from analysis_engine import generate_bullish_report_html, generate_bearish_report_html
 
 app = Flask(__name__)
+
+# Configure caching
+app.config['CACHE_TYPE'] = 'SimpleCache'
+cache = Cache(app)
 
 @app.route('/')
 def index():
@@ -25,9 +30,9 @@ def analyze():
     
     # Call the appropriate function based on analysis type
     if analysis_type == 'bullish':
-        report_html = generate_bullish_report_html(ticker, min_dte, max_dte)
+        report_html = generate_bullish_report_html(ticker, min_dte, max_dte, cache)
     elif analysis_type == 'bearish':
-        report_html = generate_bearish_report_html(ticker, min_dte, max_dte)
+        report_html = generate_bearish_report_html(ticker, min_dte, max_dte, cache)
     else:
         report_html = "<p>Invalid analysis type specified.</p>"
     
