@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Strategy Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .strategy-selection {
+            padding: 50px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .strategy-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 3px solid transparent;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .strategy-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .bullish-card {
+            background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+            border-color: #27ae60;
+        }
+
+        .bullish-card:hover {
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+        }
+
+        .bearish-card {
+            background: linear-gradient(135deg, #fdf2f2 0%, #f8e8e8 100%);
+            border-color: #e74c3c;
+        }
+
+        .bearish-card:hover {
+            background: linear-gradient(135deg, #f8e8e8 0%, #f5c6cb 100%);
+        }
+
+        .strategy-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .strategy-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .bullish-title {
+            color: #27ae60;
+        }
+
+        .bearish-title {
+            color: #e74c3c;
+        }
+
+        .strategy-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .strategy-button {
+            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .bearish-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .strategy-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .info-section {
+            background: #ecf0f1;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #ddd;
+        }
+
+        .info-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .info-section p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .strategy-selection {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 30px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .strategy-card {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Options Strategy Analyzer</h1>
+            <p>Professional analysis tools for bullish and bearish options strategies</p>
+        </div>
+
+        <div class="strategy-selection">
+            <a href="/bullish_analyzer" class="strategy-card bullish-card">
+                <span class="strategy-icon">🐂</span>
+                <h2 class="strategy-title bullish-title">Bullish Strategy</h2>
+                <p class="strategy-description">
+                    Analyze bullish risk reversal strategies with long calls and short puts. 
+                    Perfect for investors expecting upward price movement.
+                </p>
+                <button class="strategy-button">Start Bullish Analysis</button>
+            </a>
+
+            <a href="/bearish_analyzer" class="strategy-card bearish-card">
+                <span class="strategy-icon">🐻</span>
+                <h2 class="strategy-title bearish-title">Bearish Strategy</h2>
+                <p class="strategy-description">
+                    Analyze bearish risk reversal strategies with long puts and short calls. 
+                    Ideal for investors anticipating downward price movement.
+                </p>
+                <button class="strategy-button bearish-button">Start Bearish Analysis</button>
+            </a>
+        </div>
+
+        <div class="info-section">
+            <h3>🔍 How It Works</h3>
+            <p>
+                Our advanced analysis engine evaluates options chains to find the most efficient 
+                risk reversal strategies. Simply select your market outlook, enter a ticker symbol 
+                and date range, and receive detailed recommendations with risk analysis.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 
