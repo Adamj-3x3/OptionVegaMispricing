@@ -10,6 +10,10 @@ app.config.from_mapping(
     CACHE_TYPE='redis',
     CACHE_REDIS_URL=os.environ.get('REDIS_URL')
 )
+app.config['CACHE_REDIS_KWARGS'] = {
+    "ssl": True,
+    "ssl_cert_reqs": None
+}
 
 cache = Cache(app)
 
